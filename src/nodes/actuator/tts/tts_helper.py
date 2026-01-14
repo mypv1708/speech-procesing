@@ -19,12 +19,6 @@ _play_audio_bytes: Optional[Callable[[bytes], None]] = None
 def _get_tts_synthesizer(use_cuda: Optional[bool] = None) -> Optional["TTSSynthesizer"]:
     """
     Get or initialize the global TTS synthesizer instance.
-    
-    Args:
-        use_cuda: Whether to use CUDA.
-        
-    Returns:
-        TTSSynthesizer instance or None if initialization fails.
     """
 
     global _tts_synthesizer

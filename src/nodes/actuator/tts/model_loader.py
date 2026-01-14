@@ -31,7 +31,6 @@ def find_tts_model(
 ) -> Optional[Path]:
     """
     Find TTS model file in search paths.
-    
     """
     # Determine model name
     if quality and quality in TTS_VOICE_OPTIONS:
@@ -86,21 +85,6 @@ def load_tts_synthesizer(
 ) -> "TTSSynthesizer":
     """
     Load TTS synthesizer with caching support.
-    
-    Args:
-        model_path: Path to model file (auto-detect if None).
-        use_cuda: Whether to use CUDA (default: from config).
-        voice: Voice name override.
-        language: Language code override.
-        quality: Quality preset override.
-        use_cache: Whether to use cached instance.
-        
-    Returns:
-        TTSSynthesizer instance.
-        
-    Raises:
-        ImportError: If piper-tts not installed.
-        RuntimeError: If model loading fails.
     """
 
     try:
@@ -161,15 +145,6 @@ def load_tts_synthesizer(
 def preload_tts_model(use_cuda: Optional[bool] = None) -> "TTSSynthesizer":
     """
     Preload TTS model upfront to avoid first-use delay.
-    
-    Args:
-        use_cuda: Whether to use CUDA (default: from config).
-        
-    Returns:
-        TTSSynthesizer instance.
-        
-    Raises:
-        RuntimeError: If model loading fails.
     """
     import time
     
@@ -198,4 +173,3 @@ def clear_cache() -> None:
     global _tts_model_cache
     _tts_model_cache.clear()
     logger.debug("TTS model cache cleared")
-

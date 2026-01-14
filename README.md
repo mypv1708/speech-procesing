@@ -23,7 +23,7 @@ A modular voice assistant system with wake word detection, speech recognition, i
 ### 1. Create Virtual Environment
 
 ```bash
-python3.9 -m venv venv
+python3.8 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 ```
@@ -39,6 +39,9 @@ sudo apt install -y build-essential portaudio19-dev python3-dev sox libsox-fmt-a
 
 ```bash
 pip install torch==2.6.0+cu118 torchaudio==2.6.0+cu118 --index-url https://download.pytorch.org/whl/cu118
+```
+```bash
+pip install torch==2.0.1+cu117 torchaudio==2.0.2+cu117 --index-url https://download.pytorch.org/whl/cu117
 ```
 
 ### 4. Install Wake Word Dependencies
@@ -80,7 +83,11 @@ CMAKE_ARGS="-DLLAMA_CUBLAS=on" \
 FORCE_CMAKE=1 \
 pip install llama-cpp-python
 ```
-
+```bash
+CMAKE_ARGS="-DLLAMA_CUBLAS=on -DCMAKE_CUDA_ARCHITECTURES=72" \
+FORCE_CMAKE=1 \
+pip install llama-cpp-python
+```
 ### 9. Install Text-to-Speech
 
 ```bash
