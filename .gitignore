@@ -1,0 +1,12 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.idea/
+
+# Model files (too large for git)
+src/nodes/actuator/tts/model/en/
+src/nodes/cognitive/models/

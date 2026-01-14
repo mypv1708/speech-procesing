@@ -1,0 +1,47 @@
+# Voice Assistant Robot - Phase 1 Setup
+
+# 1. Create virtual environment
+python3.8 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+
+# 2. Install system dependencies
+sudo apt update
+sudo apt install -y build-essential portaudio19-dev python3-dev sox libsox-fmt-all
+
+# 3. Install PyTorch (CUDA 11.8)
+pip install torch==2.6.0+cu118 torchaudio==2.6.0+cu118 --index-url https://download.pytorch.org/whl/cu118
+
+# 4. Wake word detection
+pip install EfficientWord-Net
+pip install tflite-runtime librosa
+pip install pyaudio webrtcvad sounddevice scipy
+
+# 5. Audio enhancement
+pip install deepfilternet
+
+# 6. Speaker verification
+pip install speechbrain==1.0.3
+pip install huggingface_hub
+pip install "numpy==1.23.5" "requests==2.27.0"
+
+# 7. LLM dependencies
+pip install accelerate
+pip install optimum[onnxruntime-gpu]
+pip install bitsandbytes>=0.41.0
+pip install pydantic
+pip install transformers
+
+# 8. llama-cpp-python (with CUDA support)
+CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python
+
+# 9. Text-to-Speech
+pip install onnxruntime-gpu
+pip install piper-tts
+
+# 10. Download TTS voices
+python -m piper.download_voices \
+  --download-dir ./src/nodes/actuator/tts/model/en \
+  en_US-lessac-medium
+
+# Note: To use GPU for TTS, set TTS_USE_CUDA_DEFAULT = True in src/nodes/actuator/tts/config.py
