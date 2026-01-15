@@ -1,17 +1,13 @@
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from llama_cpp import Llama
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# FunctionGemma Model Configuration (GGUF)
-MODEL_REPO = "unsloth/functiongemma-270m-it-GGUF"
-DEFAULT_QUANTIZATION = "Q4_K_M"
+# FunctionGemma Model Configuration (Transformers)
+MODEL_REPO = "google/functiongemma-270m-it"
 DEFAULT_CONTEXT_SIZE = 2048
 DEFAULT_MAX_TOKENS = 128
 DEFAULT_TEMPERATURE = 0.1
-DEFAULT_N_THREADS = 4
-MAX_GPU_LAYERS = 999
-MODEL_SEARCH_PATHS = ["./models", "."]
 
 # Intent Classification Configuration
 INTENT_MAX_TOKENS = 64
@@ -34,4 +30,5 @@ MAX_DISTANCE = 1000.0  # Maximum distance in meters
 MAX_ANGLE = 360.0      # Maximum angle in degrees
 
 # Internal Caches
-_model_cache: Dict[str, "Llama"] = {}
+_model_cache: Dict[str, Any] = {}
+_tokenizer_cache: Dict[str, Any] = {}

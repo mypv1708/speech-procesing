@@ -12,7 +12,7 @@ _JSON_CLEAN_PATTERN = re.compile(r'```json\s*')
 _CODE_BLOCK_PATTERN = re.compile(r'```\s*')
 _JSON_EXTRACT_PATTERN = re.compile(r'\{[^{}]*\}', re.DOTALL)
 
-from ..utils.model_loader import download_model, _configure_gpu_layers, _load_model
+from ..utils.model_loader import load_intent_model
 from ..prompts.prompt_formatter import format_intent_classification_prompt
 from ..parsers.navigate_parser import parse_navigate_command
 from ..parsers.navigate_formatter import NavigateFormatter
@@ -25,7 +25,6 @@ from ..config import INTENT_MAX_TOKENS, INTENT_TEMPERATURE, INTENT_STOP_SEQUENCE
 
 def classify_intent(
     text_input: str,
-    model_path: Optional[str] = None,
     use_gpu: bool = True,
     verbose: bool = True,
     use_tts: bool = True
@@ -55,21 +54,10 @@ def classify_intent(
         
         return intent_data
 
-    if model_path is None or not os.path.exists(model_path):
-        if verbose and model_path:
-            print(f"File {model_path} not found, downloading model...")
-        model_start = time.time()
-        model_path = download_model(verbose=verbose)
-        timing['model_download'] = time.time() - model_start
-    elif verbose:
-        print(f"✓ Using model: {model_path}")
-
-    n_gpu_layers, gpu_info = _configure_gpu_layers(use_gpu, None)
-
     if verbose:
-        print(f"Loading model{gpu_info}...")
+        print(f"Loading model...")
     load_start = time.time()
-    llm = _load_model(model_path, n_gpu_layers, use_cache=True)
+    model, tokenizer = load_intent_model(use_gpu=use_gpu, verbose=verbose)
     timing['model_load'] = time.time() - load_start
 
     prompt_start = time.time()
@@ -81,23 +69,39 @@ def classify_intent(
         print("Classifying intent...")
 
     inference_start = time.time()
-    output = llm(
-        prompt,
-        max_tokens=INTENT_MAX_TOKENS,
-        temperature=INTENT_TEMPERATURE,
-        stop=INTENT_STOP_SEQUENCES,
-        echo=False
-    )
+    
+    import torch
+    input_ids = tokenizer.apply_chat_template(
+        [{"role": "user", "content": prompt}],
+        add_generation_prompt=True,
+        return_tensors="pt",
+        tokenize=True,
+    ).to(model.device)
+    
+    attention_mask = torch.ones_like(input_ids)
+
+    with torch.inference_mode():
+        outputs = model.generate(
+            input_ids,
+            attention_mask=attention_mask,
+            max_new_tokens=INTENT_MAX_TOKENS,
+            temperature=INTENT_TEMPERATURE,
+            do_sample=True if INTENT_TEMPERATURE > 0 else False,
+            pad_token_id=tokenizer.eos_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+            use_cache=True,
+            num_beams=1,
+        )
+    
+    result = tokenizer.decode(outputs[0, input_ids.shape[1]:], skip_special_tokens=True)
+    
     inference_time = time.time() - inference_start
     timing['inference'] = inference_time
-
-    result = output['choices'][0]['text']
-
-    if 'usage' in output:
-        tokens_generated = output['usage'].get('completion_tokens', 0)
-        if tokens_generated > 0:
-            timing['tokens_per_second'] = tokens_generated / inference_time
-            timing['tokens_generated'] = tokens_generated
+    
+    tokens_generated = outputs.shape[1] - input_ids.shape[1]
+    if tokens_generated > 0:
+        timing['tokens_per_second'] = tokens_generated / inference_time
+        timing['tokens_generated'] = tokens_generated
 
     parse_start = time.time()
     intent_data = _parse_intent_json(result, text_input)
