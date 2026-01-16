@@ -31,12 +31,6 @@ def preload_intent_model(use_gpu: bool = True, verbose: bool = False) -> None:
     import logging
     logger = logging.getLogger(__name__)
     
-    logger.info("=" * 60)
-    logger.info("Preloading Intent Classification model (FunctionGemma)...")
-    logger.info("=" * 60)
-    
-    start_time = time.time()
-    
     try:
         # Download model if needed
         model_path = download_model(verbose=verbose)
@@ -44,16 +38,8 @@ def preload_intent_model(use_gpu: bool = True, verbose: bool = False) -> None:
         # Configure GPU layers
         n_gpu_layers, gpu_info = _configure_gpu_layers(use_gpu, None)
         
-        if verbose:
-            logger.info(f"Loading model{gpu_info}...")
-        
         # Load model (will be cached)
         _load_model(model_path, n_gpu_layers, use_cache=True)
-        
-        load_time = time.time() - start_time
-        logger.info("=" * 60)
-        logger.info("Intent Classification model preloaded successfully in %.2f seconds", load_time)
-        logger.info("=" * 60)
         
     except Exception as e:
         logger.error("Failed to preload intent model: %s", e, exc_info=True)
@@ -71,20 +57,9 @@ def preload_emotional_model(use_gpu: bool = True, verbose: bool = False) -> None
     import logging
     logger = logging.getLogger(__name__)
     
-    logger.info("=" * 60)
-    logger.info("Preloading Emotional Chat model (LFM2-350M)...")
-    logger.info("=" * 60)
-    
-    start_time = time.time()
-    
     try:
         # Load model (will be cached)
         load_emotional_model(use_gpu=use_gpu, verbose=verbose)
-        
-        load_time = time.time() - start_time
-        logger.info("=" * 60)
-        logger.info("Emotional Chat model preloaded successfully in %.2f seconds", load_time)
-        logger.info("=" * 60)
         
     except Exception as e:
         logger.error("Failed to preload emotional model: %s", e, exc_info=True)
@@ -102,23 +77,12 @@ def preload_all_cognitive_models(use_gpu: bool = True, verbose: bool = False) ->
     import logging
     logger = logging.getLogger(__name__)
     
-    logger.info("=" * 60)
-    logger.info("Preloading all Cognitive models...")
-    logger.info("=" * 60)
-    
-    total_start = time.time()
-    
     try:
         # Preload intent classification model
         preload_intent_model(use_gpu=use_gpu, verbose=verbose)
         
         # Preload emotional chat model
         preload_emotional_model(use_gpu=use_gpu, verbose=verbose)
-        
-        total_time = time.time() - total_start
-        logger.info("=" * 60)
-        logger.info("All Cognitive models preloaded in %.2f seconds", total_time)
-        logger.info("=" * 60)
         
     except Exception as e:
         logger.error("Failed to preload cognitive models: %s", e, exc_info=True)

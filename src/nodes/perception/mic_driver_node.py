@@ -26,7 +26,6 @@ class MicDriverNode:
             use_gpu: Whether to use GPU for models.
             use_tts: Whether to enable TTS for responses.
         """
-        logger.info("Initializing MicDriverNode...")
         try:
             # Load perception models (wake word, audio enhancement)
             self.model, self.df_state, self.target_sr, self.device, self.wake_word_detector = load_all_models()
@@ -39,8 +38,8 @@ class MicDriverNode:
                 from nodes.actuator.tts.model_loader import preload_tts_model
                 try:
                     preload_tts_model(use_cuda=use_gpu)
-                except Exception as e:
-                    logger.warning(f"TTS preload failed (will use lazy loading): {e}")
+                except Exception:
+                    pass
             
             # Initialize cognitive processing (intent classification)
             from nodes.cognitive.cognitive_node import CognitiveNode
@@ -49,24 +48,18 @@ class MicDriverNode:
                 verbose=True,
                 use_tts=use_tts
             )
-            
-            logger.info("MicDriverNode initialized successfully")
         except Exception as e:
             logger.exception("Failed to initialize MicDriverNode: %s", e)
             raise
 
     def run(self) -> None:
-        logger.info("Starting mic driver main loop...")
         try:
             while True:
-                logger.debug("Waiting for wake word...")
                 detected = wait_for_wake_word(self.wake_word_detector)
                 
                 if not detected:
-                    logger.debug("Wake word detection cancelled or failed")
                     continue
                 
-                logger.info("Wake word detected! Starting recording loop...")
                 result = run_recording_loop(
                     model=self.model,
                     df_state=self.df_state,
@@ -74,13 +67,9 @@ class MicDriverNode:
                     device=self.device,
                     on_utterance=self._on_utterance
                 )
-                
-                if result is not None:
-                    audio, sr = result
-                    logger.info("Recording completed: %d samples at %d Hz", len(audio), sr)
                     
         except KeyboardInterrupt:
-            logger.info("MicDriverNode interrupted by user")
+            pass
         except Exception as e:
             logger.exception("MicDriverNode error: %s", e)
             raise
@@ -103,17 +92,10 @@ class MicDriverNode:
         text = self.speech_recognition.process_audio(audio, sample_rate)
         
         if not text:
-            logger.debug("No transcription received, skipping cognitive processing")
             return False
         
         # Step 2: Intent Classification and Response
-        result = self.cognitive.process_text(text)
-        
-        if result:
-            intent = result.get('intent', 'unknown')
-            logger.info("Intent processing completed: %s", intent)
-        else:
-            logger.warning("Cognitive processing returned no result")
+        self.cognitive.process_text(text)
         
         return False
 
@@ -126,7 +108,6 @@ def main():
         node = MicDriverNode()
         node.run()
     except KeyboardInterrupt:
-        logger.info("Shutting down...")
         sys.exit(0)
     except Exception as e:
         logger.exception("Fatal error: %s", e)

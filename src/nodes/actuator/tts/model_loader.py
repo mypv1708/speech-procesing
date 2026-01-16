@@ -50,13 +50,11 @@ def find_tts_model(
         # Try language subdirectory first
         model_path = search_dir / lang / model_name
         if model_path.exists():
-            logger.debug(f"Found TTS model: {model_path}")
             return model_path
         
         # Try direct path
         model_path = search_dir / model_name
         if model_path.exists():
-            logger.debug(f"Found TTS model: {model_path}")
             return model_path
     
     logger.warning(f"TTS model not found: {model_name} (language: {lang})")
@@ -111,12 +109,9 @@ def load_tts_synthesizer(
     
     # Check cache
     if use_cache and cache_key in _tts_model_cache:
-        logger.debug(f"Using cached TTS synthesizer: {cache_key}")
         return _tts_model_cache[cache_key]
     
     # Load synthesizer
-    logger.info(f"Loading TTS synthesizer: {model_path} (CUDA: {use_cuda})")
-    
     try:
         synthesizer = TTSSynthesizer(
             model_path=str(model_path),
@@ -127,7 +122,6 @@ def load_tts_synthesizer(
         if use_cache:
             _tts_model_cache[cache_key] = synthesizer
         
-        logger.info("TTS synthesizer loaded successfully")
         return synthesizer
         
     except Exception as e:
@@ -146,22 +140,8 @@ def preload_tts_model(use_cuda: Optional[bool] = None) -> "TTSSynthesizer":
     """
     Preload TTS model upfront to avoid first-use delay.
     """
-    import time
-    
-    logger.info("=" * 60)
-    logger.info("Preloading TTS model...")
-    logger.info("=" * 60)
-    
-    start_time = time.perf_counter()
-    
     try:
         synthesizer = load_tts_synthesizer(use_cuda=use_cuda, use_cache=True)
-        load_time = time.perf_counter() - start_time
-        
-        logger.info("=" * 60)
-        logger.info("TTS model preloaded successfully in %.2f seconds", load_time)
-        logger.info("=" * 60)
-        
         return synthesizer
     except Exception as e:
         logger.error("Failed to preload TTS model: %s", e, exc_info=True)
@@ -172,4 +152,3 @@ def clear_cache() -> None:
     """Clear TTS model cache."""
     global _tts_model_cache
     _tts_model_cache.clear()
-    logger.debug("TTS model cache cleared")

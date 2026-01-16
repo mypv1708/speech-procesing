@@ -43,7 +43,6 @@ class TTSSynthesizer:
             from .model_loader import get_default_model_path
             self._model_path = get_default_model_path()
 
-        logger.info(f"Loading TTS model: {self._model_path}")
         try:
             # Try to load with CUDA if requested
             if self._use_cuda:
@@ -58,7 +57,6 @@ class TTSSynthesizer:
                             config_path=None,
                             use_cuda=True,
                         )
-                        logger.info("TTS model loaded successfully with CUDA")
                         return
                     finally:
                         # Restore original logging level
@@ -84,7 +82,6 @@ class TTSSynthesizer:
                 config_path=None,
                 use_cuda=False,
             )
-            logger.info("TTS model loaded successfully with CPU")
         except Exception as e:
             logger.error(f"Failed to load TTS model: {e}")
             raise

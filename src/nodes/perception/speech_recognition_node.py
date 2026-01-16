@@ -21,7 +21,6 @@ class SpeechRecognitionNode:
             preload_models: Whether to preload all models upfront (default: True).
                            If False, models will be loaded lazily.
         """
-        logger.info("Initializing SpeechRecognitionNode...")
         self.speaker_verifier: Optional[SpeakerVerifier] = None
         self.transcription_engine: Optional[TranscriptionEngine] = None
         
@@ -40,11 +39,6 @@ class SpeechRecognitionNode:
             enroll_wavs = SpeakerVerifier.load_enrollment()
             if enroll_wavs is not None:
                 self.speaker_verifier = SpeakerVerifier(speaker_model, enroll_wavs)
-                logger.info("Speaker verification enabled")
-            else:
-                logger.warning("Enrollment voice not loaded - speaker verification disabled")
-        else:
-            logger.warning("Speaker model not loaded - speaker verification disabled")
 
         # Setup transcription engine
         try:
@@ -55,8 +49,6 @@ class SpeechRecognitionNode:
         except Exception as e:
             logger.error("Failed to setup STT engine", exc_info=True)
             raise RuntimeError(f"Failed to initialize SpeechRecognitionNode: {e}") from e
-        
-        logger.info("SpeechRecognitionNode initialized successfully")
 
     def process_audio(self, audio: np.ndarray, sample_rate: int) -> Optional[str]:
         try:
@@ -67,15 +59,10 @@ class SpeechRecognitionNode:
 
         if self.speaker_verifier is not None:
             if not self.speaker_verifier.verify(audio_16k, STT_SAMPLE_RATE):
-                logger.info("Rejecting audio - skipping transcription")
                 return None
-        else:
-            logger.debug("Speaker verification not available - proceeding with transcription")
 
         if self.transcription_engine is None:
             return None
 
         text = self.transcription_engine.transcribe(audio_16k, STT_SAMPLE_RATE)
-        if text:
-            logger.info("Transcription: %s", text)
         return text

@@ -42,6 +42,6 @@ pip install piper-tts
 # 10. Download TTS voices
 python -m piper.download_voices \
   --download-dir ./src/nodes/actuator/tts/model/en \
-  en_US-lessac-medium
+  en_US-lessac-low
 
 # Note: To use GPU for TTS, set TTS_USE_CUDA_DEFAULT = True in src/nodes/actuator/tts/config.py
