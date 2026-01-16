@@ -45,8 +45,8 @@ def play_audio_bytes(audio_bytes: bytes) -> None:
             
     except ImportError:
         pass
-    except Exception as e:
-        logger.debug(f"sounddevice playback failed: {e}")
+    except Exception:
+        pass
     
     # Try pyaudio
     try:
@@ -76,8 +76,8 @@ def play_audio_bytes(audio_bytes: bytes) -> None:
             
     except ImportError:
         pass
-    except Exception as e:
-        logger.debug(f"pyaudio playback failed: {e}")
+    except Exception:
+        pass
     
     # Fallback: system audio player
     tmp_path = None

@@ -33,8 +33,6 @@ class SpeechToTextEngine:
             return
 
         model_name = f"openai/whisper-{STT_MODEL_ID}"
-        logger.info("Loading Whisper model '%s' (device=%s, fp16=%s)...", model_name, self.device, self._use_fp16)
-        start_time = time.perf_counter()
         try:
             self.processor = AutoProcessor.from_pretrained(model_name)
             self.model = AutoModelForSpeechSeq2Seq.from_pretrained(model_name).to(self.device)
@@ -43,12 +41,9 @@ class SpeechToTextEngine:
             if hasattr(torch, "compile") and self.device.type == "cuda":
                 try:
                     self.model = torch.compile(self.model, mode="reduce-overhead")
-                    logger.debug("Model compiled with torch.compile")
                 except Exception:
                     pass
             
-            load_time = time.perf_counter() - start_time
-            logger.info("STT model loaded on %s in %.2f seconds", self.device, load_time)
             self._initialized = True
         except Exception as e:
             logger.exception("Failed to load STT model")
@@ -84,9 +79,8 @@ class SpeechToTextEngine:
                         num_beams=1,  # Use minimal beams for warm-up
                         max_new_tokens=1,  # Minimal tokens
                     )
-                logger.debug("STT model warmed up successfully")
-            except Exception as e:
-                logger.debug(f"STT model warm-up failed (non-critical): {e}")
+            except Exception:
+                pass
 
     def transcribe_audio(self, audio: np.ndarray, sr: int) -> str:
         if audio is None or audio.size == 0:
@@ -103,19 +97,8 @@ class SpeechToTextEngine:
         text = self._run_inference(audio)
         text = self._postprocess_segments(text)
         
-        total_time = time.perf_counter() - total_start
-        
-        if logger.isEnabledFor(logging.INFO):
-            speed_ratio = audio_duration / total_time if total_time > 0 else 0.0
-            logger.info(
-                "STT total: %.3fs (audio: %.2fs, speed: %.2fx real-time)",
-                total_time,
-                audio_duration,
-                speed_ratio,
-            )
-        
-        if not text and logger.isEnabledFor(logging.WARNING):
-            logger.warning("STT returned empty result (no speech detected or filtered out)")
+        if not text:
+            return text
         
         return text
 

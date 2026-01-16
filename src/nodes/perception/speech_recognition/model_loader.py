@@ -25,16 +25,10 @@ def load_speaker_model() -> Optional[SpeakerRecognition]:
     """
     device = SPEAKER_DEVICE if SPEAKER_DEVICE else ("cuda" if torch.cuda.is_available() else "cpu")
     try:
-        logger.info("Loading Speaker Recognition model on %s...", device)
-        start_time = time.perf_counter()
-        
         model = SpeakerRecognition.from_hparams(
             source="speechbrain/spkrec-ecapa-voxceleb",
             run_opts={"device": device},
         )
-        
-        load_time = time.perf_counter() - start_time
-        logger.info("Speaker Recognition model loaded on %s in %.2f seconds", device, load_time)
         return model
     except Exception as e:
         logger.warning("Failed to load Speaker Recognition model (speaker verification disabled): %s", e)
@@ -54,7 +48,6 @@ def load_stt_model(preload: bool = True) -> "SpeechToTextEngine":
     Raises:
         RuntimeError: If model loading fails.
     """
-    logger.info("Initializing Speech-to-Text engine...")
     if STT_DEVICE:
         device = STT_DEVICE
     else:
@@ -65,13 +58,7 @@ def load_stt_model(preload: bool = True) -> "SpeechToTextEngine":
 
         engine = SpeechToTextEngine(device)
         if preload:
-            logger.info("Preloading STT model to avoid first-use delay...")
-            start_time = time.perf_counter()
             engine.preload()
-            load_time = time.perf_counter() - start_time
-            logger.info("Speech-to-Text engine ready (preloaded on %s in %.2f seconds)", device, load_time)
-        else:
-            logger.info("Speech-to-Text engine ready (lazy loading on %s)", device)
         return engine
     except Exception as e:
         logger.exception("Failed to initialize STT engine: %s", e)
@@ -92,22 +79,10 @@ def preload_all_models() -> Tuple[Optional[SpeakerRecognition], "SpeechToTextEng
     Raises:
         RuntimeError: If STT model loading fails (STT is required).
     """
-    logger.info("=" * 60)
-    logger.info("Preloading all Speech Recognition models...")
-    logger.info("=" * 60)
-    
-    total_start = time.perf_counter()
-    
     # Load speaker model
     speaker_model = load_speaker_model()
     
     # Load STT model (required, will raise if fails)
     stt_engine = load_stt_model(preload=True)
-    
-    total_time = time.perf_counter() - total_start
-    
-    logger.info("=" * 60)
-    logger.info("All Speech Recognition models loaded in %.2f seconds", total_time)
-    logger.info("=" * 60)
     
     return speaker_model, stt_engine

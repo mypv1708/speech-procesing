@@ -6,7 +6,7 @@ from pathlib import Path
 # Model Configuration
 TTS_MODEL_DIR = Path(__file__).parent / "model"
 TTS_DEFAULT_LANGUAGE = "en"
-TTS_DEFAULT_VOICE = "en_US-lessac-medium"
+TTS_DEFAULT_VOICE = "en_US-lessac-low"
 TTS_DEFAULT_MODEL_NAME = f"{TTS_DEFAULT_VOICE}.onnx"
 
 # Model Paths

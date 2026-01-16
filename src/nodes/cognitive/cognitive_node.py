@@ -3,11 +3,27 @@ Cognitive Node - Processes transcribed text through intent classification.
 """
 import logging
 import re
+import sys
+from pathlib import Path
 from typing import Optional, Dict, Any
 
 from .classify_intent.intent_classifier import classify_intent
 
 logger = logging.getLogger(__name__)
+
+# Import client để gửi lệnh đến robot
+try:
+    # Thêm project root vào path để import client
+    project_root = Path(__file__).parent.parent.parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    from client import send_command
+    CLIENT_AVAILABLE = True
+    logger.info("Robot client loaded successfully - commands will be sent to server")
+except ImportError as e:
+    logger.warning(f"Failed to import client: {e}. Robot commands will not be sent.")
+    CLIENT_AVAILABLE = False
+    send_command = None
 
 
 def normalize_stt_text(text: str) -> str:
@@ -66,7 +82,6 @@ class CognitiveNode:
             use_tts: Whether to enable TTS for responses.
             preload_models: Whether to preload all models upfront (default: True).
         """
-        logger.info("Initializing CognitiveNode...")
         self.use_gpu = use_gpu
         self.verbose = verbose
         self.use_tts = use_tts
@@ -76,10 +91,8 @@ class CognitiveNode:
             try:
                 from .utils.model_loader import preload_all_cognitive_models
                 preload_all_cognitive_models(use_gpu=use_gpu, verbose=verbose)
-            except Exception as e:
-                logger.warning(f"Failed to preload cognitive models: {e}. Models will be loaded lazily.")
-        
-        logger.info("CognitiveNode initialized successfully")
+            except Exception:
+                pass
     
     def process_text(self, text: str) -> Optional[Dict[str, Any]]:
         """
@@ -92,7 +105,6 @@ class CognitiveNode:
             Intent classification result dictionary or None if processing fails.
         """
         if not text or not text.strip():
-            logger.debug("Empty text received, skipping processing")
             return None
         
         try:
@@ -114,6 +126,58 @@ class CognitiveNode:
             
             intent = result.get('intent', 'unknown')
             logger.info("Intent classified: %s", intent)
+            
+            # Debug: Kiểm tra client availability
+            if intent == 'navigate':
+                logger.info(f"Navigate intent detected. CLIENT_AVAILABLE={CLIENT_AVAILABLE}, send_command={send_command is not None}")
+            
+            # Nếu là intent navigate và có formatted_command hợp lệ, gửi lệnh đến robot
+            if intent == 'navigate' and CLIENT_AVAILABLE and send_command:
+                formatted_command = result.get('formatted_command', '').strip()
+                actions = result.get('actions', [])
+                
+                # Debug: Log thông tin navigate
+                logger.info(f"Navigate intent - formatted_command: {repr(formatted_command)}, actions count: {len(actions) if actions else 0}")
+                
+                # Chỉ gửi nếu có formatted_command và có actions (không phải navigate empty)
+                if formatted_command and actions and len(actions) > 0:
+                    # Kiểm tra xem có action thực sự không (không phải chỉ có STOP)
+                    has_real_action = False
+                    for action in actions:
+                        action_type = action.get('type', '')
+                        if action_type in ['move', 'turn']:
+                            has_real_action = True
+                            break
+                    
+                    logger.info(f"Navigate intent - has_real_action: {has_real_action}")
+                    
+                    if has_real_action:
+                        # Kiểm tra lệnh có hợp lệ không (phải bắt đầu bằng $SEQ)
+                        if formatted_command.startswith('$SEQ'):
+                            logger.info(f"✓ Sending command to robot: {repr(formatted_command)}")
+                            try:
+                                success = send_command(formatted_command)
+                                if success:
+                                    logger.info("✓✓ Command sent to robot successfully!")
+                                else:
+                                    logger.warning("✗ Failed to send command to robot")
+                            except Exception as e:
+                                logger.error(f"✗ Error sending command to robot: {e}", exc_info=True)
+                        else:
+                            logger.warning(f"✗ Invalid command format (must start with $SEQ): {repr(formatted_command)}")
+                    else:
+                        logger.info("Navigate intent has no real actions (only STOP), skipping robot command")
+                else:
+                    if not formatted_command:
+                        logger.info(f"Navigate intent missing formatted_command, skipping robot command")
+                    elif not actions or len(actions) == 0:
+                        logger.info(f"Navigate intent has empty actions, skipping robot command")
+            elif intent == 'navigate':
+                # Navigate nhưng không có client
+                if not CLIENT_AVAILABLE:
+                    logger.warning("Navigate intent detected but CLIENT_AVAILABLE=False - command will not be sent")
+                elif not send_command:
+                    logger.warning("Navigate intent detected but send_command is None - command will not be sent")
             
             return result
             
